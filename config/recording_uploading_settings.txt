@@ -1,0 +1,4 @@
+#!/bin/bash
+
+OUTPUT_DIR="/home/crosstech/toughcam-logger/output_videos"
+GCS_SUBFOLDER="tc001"

@@ -1,0 +1,11 @@
+# Ignore all .log files
+*.log
+
+# Ignore a specific file
+config/auto-uploader-key.json
+
+# Ignore a directory
+/node_modules
+
+# Ignore all .tmp files in any directory
+*.tmp
