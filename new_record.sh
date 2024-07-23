@@ -7,9 +7,9 @@ HEIGHT=1296
 FRAMERATE=56
 BITRATE=10000000
 SEGMENT_SIZE=100000000 # Segment size in bytes - 100MB default
-TEMP_DIR="/home/crosstech/toughcam-logger/temp_videos"
-OUTPUT_DIR="/home/crosstech/toughcam-logger/output_videos"
-LOG_FILE="/home/crosstech/toughcam-logger/video_processing.log"
+TEMP_DIR="/home/crosstech/toughcam-release/temp_videos"
+OUTPUT_DIR="/home/crosstech/toughcam-release/output_videos"
+LOG_FILE="/home/crosstech/toughcam-release/video_processing.log"
 GPS_DEVICE="/dev/ttyACM0"
 GPS_BAUDRATE=38400
 ENABLE_GPS_LOGGING=true  # Set to false to disable GPS logging
@@ -19,7 +19,7 @@ GCS_BUCKET="gs://auto-uploads/tc001"  # Google Cloud Storage subfolder
 HOSTNAME_PREFIX="tc001"
 
 # Path to the USB reset script
-USB_RESET_SCRIPT="/home/crosstech/toughcam-logger/reset_gps_usb.sh"
+USB_RESET_SCRIPT="/home/crosstech/toughcam-release/reset_gps_usb.sh"
 
 # Create directories if they don't exist
 mkdir -p $TEMP_DIR
