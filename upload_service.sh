@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Load the configuration
-source /home/crosstech/toughcam-release/config/recording_uploading_settings.txt
+# Configuration
+OUTPUT_DIR="/home/crosstech/toughcam-release/output_videos"
+GCS_SUBFOLDER="tc001"
 
 # Set up gsutil authentication
 echo "$(date +%Y-%m-%dT%H:%M:%S.%3N) - Starting gsutil authentication" | tee -a /home/crosstech/toughcam-release/upload_service.log

@@ -67,13 +67,6 @@ process_segment() {
     local processing_elapsed_time=$((processing_end_time - processing_start_time))
     echo "Processing time for $input_file: $processing_elapsed_time ms" | tee -a $specific_log_file
 
-    # Add start time metadata to the first output file
-    first_output_file=$(printf "$output_pattern" 0)
-    if [ -f "$first_output_file" ]; then
-        ffmpeg -i $first_output_file -metadata creation_time="$(date -d @$((start_time/1000)) +'%Y-%m-%dT%H:%M:%S.%3N')" -codec copy "${first_output_file%.mp4}_sync.mp4"
-        mv "${first_output_file%.mp4}_sync.mp4" $first_output_file
-    fi
-
     rm $input_file
 
     # Move log and GPS files to output directory
@@ -81,7 +74,7 @@ process_segment() {
     mv "${GPS_LOG_FILE}" "${OUTPUT_DIR}/$(basename "${GPS_LOG_FILE}")"
 }
 
-# Function to log GPS data
+# Function to log GPS data with timestamps
 log_gps_data() {
     local gps_log_file=$1
 
@@ -92,7 +85,13 @@ log_gps_data() {
     done
 
     stty -F $GPS_DEVICE $GPS_BAUDRATE
-    cat $GPS_DEVICE > $gps_log_file &
+
+    # Read GPS data line-by-line, add timestamp, and write to the log file
+    {
+        while read -r line; do
+            echo "$(date +%Y-%m-%dT%H:%M:%S.%3N) $line"
+        done < $GPS_DEVICE
+    } > $gps_log_file &
     gps_pid=$!
 
     # Return the PID of the GPS logging process
@@ -187,7 +186,7 @@ while true; do
     # Record the video segment based on camera option
     if [ "$CAMERA_OPTION" = 0 ] || [ "$CAMERA_OPTION" = 2 ]; then
         echo "Starting Recording from camera 0..."
-        libcamera-vid -t $((DURATION * 1000)) --height $HEIGHT --width $WIDTH --framerate $FRAMERATE --bitrate $BITRATE --vflip -o $TEMP_FILENAME0 2>&1 -v 0 &
+        libcamera-vid -t $((DURATION * 1000)) --height $HEIGHT --width $WIDTH --framerate $FRAMERATE --bitrate $BITRATE --hflip --vflip -o $TEMP_FILENAME0 2>&1 -v 0 &
         recording_pid0=$!
         last_temp_filename0="$TEMP_FILENAME0"
         last_output_pattern0="$OUTPUT_PATTERN0"
@@ -195,7 +194,7 @@ while true; do
 
     if [ "$CAMERA_OPTION" = 1 ] || [ "$CAMERA_OPTION" = 2 ]; then
         echo "Starting Recording from camera 1..."
-        libcamera-vid -t $((DURATION * 1000)) --height $HEIGHT --width $WIDTH --framerate $FRAMERATE --bitrate $BITRATE --vflip -o $TEMP_FILENAME1 --camera 1 2>&1 -v 0 &
+        libcamera-vid -t $((DURATION * 1000)) --height $HEIGHT --width $WIDTH --framerate $FRAMERATE --bitrate $BITRATE --hflip --vflip -o $TEMP_FILENAME1 --camera 1 2>&1 -v 0 &
         recording_pid1=$!
         last_temp_filename1="$TEMP_FILENAME1"
         last_output_pattern1="$OUTPUT_PATTERN1"
@@ -234,21 +233,6 @@ while true; do
         # Process the recorded segment for camera 0
         process_segment "$TEMP_FILENAME0" "$OUTPUT_PATTERN0" "$precise_start_time" "$SPECIFIC_LOG_FILE" &
         processing_pid0=$!
-        wait $processing_pid0
-
-        # Log the processing end time for camera 0
-        processing_end_time0=$(date +%s%3N)
-        log_time "Processing ended for $TEMP_FILENAME0: $processing_end_time0" $SPECIFIC_LOG_FILE
-
-        # Calculate and print segmenting elapsed time for camera 0
-        segmenting_time0=$((processing_end_time0 - recording_end_time))
-        echo "Time between end of recording and output file creation for camera 0: $segmenting_time0 ms" | tee -a $SPECIFIC_LOG_FILE
-
-        # Clear last segment variables for camera 0 after processing
-        last_temp_filename0=""
-        last_output_pattern0=""
-        last_precise_start_time=""
-        last_specific_log_file=""
     fi
 
     if [ "$CAMERA_OPTION" = 1 ] || [ "$CAMERA_OPTION" = 2 ]; then
@@ -261,20 +245,5 @@ while true; do
         # Process the recorded segment for camera 1
         process_segment "$TEMP_FILENAME1" "$OUTPUT_PATTERN1" "$precise_start_time" "$SPECIFIC_LOG_FILE" &
         processing_pid1=$!
-        wait $processing_pid1
-
-        # Log the processing end time for camera 1
-        processing_end_time1=$(date +%s%3N)
-        log_time "Processing ended for $TEMP_FILENAME1: $processing_end_time1" $SPECIFIC_LOG_FILE
-
-        # Calculate and print segmenting elapsed time for camera 1
-        segmenting_time1=$((processing_end_time1 - recording_end_time))
-        echo "Time between end of recording and output file creation for camera 1: $segmenting_time1 ms" | tee -a $SPECIFIC_LOG_FILE
-
-        # Clear last segment variables for camera 1 after processing
-        last_temp_filename1=""
-        last_output_pattern1=""
-        last_precise_start_time=""
-        last_specific_log_file=""
     fi
 done
