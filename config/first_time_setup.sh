@@ -104,6 +104,7 @@ StandardOutput=journal
 StandardError=journal
 Restart=always
 User=root
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target" | sudo tee /etc/systemd/system/toughcam-recording-service.service
