@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Prompt for Toughcam ID
+read -p "Enter Toughcam ID (1, 2, 3, etc.): " TOUGHCAM_ID
+
+# Format the ID as tc001, tc002, etc.
+FORMATTED_ID=$(printf "tc%03d" $TOUGHCAM_ID)
+
+# Create the configuration directory and file
+CONFIG_DIR="/home/crosstech/toughcam-release/config"
+CONFIG_FILE="$CONFIG_DIR/config.txt"
+mkdir -p $CONFIG_DIR
+echo "TOUGHCAM_ID=$FORMATTED_ID" > $CONFIG_FILE
+
 # Update and upgrade the system
 sudo apt-get update && sudo apt-get upgrade -y
 
@@ -12,7 +24,7 @@ sudo apt-get install -y gstreamer1.0-tools gstreamer1.0-plugins-base \
 sudo apt-get install -y ffmpeg
 
 # Install other necessary packages
-#sudo apt-get install -y python3-pip quota
+sudo apt-get install -y python3-pip quota
 
 # Install Python gpiozero library
 pip3 install gpiozero
