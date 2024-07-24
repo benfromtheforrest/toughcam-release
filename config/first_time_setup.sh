@@ -35,7 +35,6 @@ mkdir -p /home/crosstech/toughcam-release/output_videos
 
 # Set permissions for the scripts
 chmod +x /home/crosstech/toughcam-release/new_record.sh
-chmod +x /home/crosstech/toughcam-release/upload_service.sh
 chmod +x /home/crosstech/toughcam-release/reset_gps_usb.sh
 
 # Enable quotas on the home directory
