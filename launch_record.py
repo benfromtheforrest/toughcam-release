@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 BUTTON_PIN = 12
 LED_PIN = 25
-DEBOUNCE_TIME = 0.3  # debounce time in seconds
+DEBOUNCE_TIME = 1  # debounce time in seconds
 
 RUNNING = False
 record_process = None
