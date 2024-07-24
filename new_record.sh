@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Parse the Toughcam ID from the configuration file
+CONFIG_FILE="/home/crosstech/toughcam-release/config/config.txt"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: Configuration file not found at $CONFIG_FILE"
+    exit 1
+fi
+
+TOUGHCAM_ID=$(grep -E "^TOUGHCAM_ID=" "$CONFIG_FILE" | cut -d '=' -f 2)
+if [ -z "$TOUGHCAM_ID" ]; then
+    echo "Error: Toughcam ID not found in configuration file"
+    exit 1
+fi
+
 # Variables
 DURATION=600   # Duration of each recording loop in seconds, this loop is then split into segments (size defined below) and uploaded
 WIDTH=2304
@@ -15,8 +28,8 @@ GPS_BAUDRATE=38400
 ENABLE_GPS_LOGGING=true  # Set to false to disable GPS logging
 POWER_CYCLE_GPS=false  # Set to false to disable power cycling the GPS - can fix weird behaviour but adds 5 seconds downtime between record loops
 RETRY_INTERVAL=5  # Interval (in seconds) to check for GPS device availability
-GCS_BUCKET="gs://auto-uploads/tc001"  # Google Cloud Storage subfolder
-HOSTNAME_PREFIX="tc001"
+GCS_BUCKET="gs://auto-uploads/$TOUGHCAM_ID"  # Google Cloud Storage subfolder
+HOSTNAME_PREFIX="$TOUGHCAM_ID"
 CAMERA_OPTION=0  # 0 for camera 0, 1 for camera 1, 2 for both cameras
 
 # Path to the USB reset script

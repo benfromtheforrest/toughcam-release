@@ -5,10 +5,29 @@ import logging
 from gpiozero import LED
 from datetime import datetime
 
+# Configuration file
+CONFIG_FILE = "/home/crosstech/toughcam-release/config/config.txt"
+
+# Parse the Toughcam ID from the configuration file
+if not os.path.isfile(CONFIG_FILE):
+    raise FileNotFoundError(f"Configuration file not found at {CONFIG_FILE}")
+
+with open(CONFIG_FILE, 'r') as file:
+    lines = file.readlines()
+
+TOUGHCAM_ID = None
+for line in lines:
+    if line.startswith("TOUGHCAM_ID="):
+        TOUGHCAM_ID = line.strip().split("=")[1]
+        break
+
+if TOUGHCAM_ID is None:
+    raise ValueError("Toughcam ID not found in configuration file")
+
 # Configuration
 OUTPUT_DIR = "/home/crosstech/toughcam-release/output_videos"
 TEMP_DIR = "/home/crosstech/toughcam-release/temp_videos"
-GCS_SUBFOLDER = "tc001"
+GCS_SUBFOLDER = TOUGHCAM_ID
 LOG_FILE = "/home/crosstech/toughcam-release/upload_service.log"
 LED_PIN = 18  # GPIO pin for the LED
 RECORDING_SCRIPT_NAME = "recording_script.py"  # Name of the recording script
