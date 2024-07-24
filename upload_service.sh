@@ -5,7 +5,7 @@ source /home/crosstech/toughcam-release/config/recording_uploading_settings.txt
 
 # Set up gsutil authentication
 echo "$(date +%Y-%m-%dT%H:%M:%S.%3N) - Starting gsutil authentication" | tee -a /home/crosstech/toughcam-release/upload_service.log
-gcloud auth activate-service-account auto-uploader@virbatim.iam.gserviceaccount.com --key-file=/home/crosstech/toughcam-logger/config/auto-uploader-key.json --project=virbatim
+gcloud auth activate-service-account auto-uploader@virbatim.iam.gserviceaccount.com --key-file=/home/crosstech/config/auto-uploader-key.json --project=virbatim
 if [ $? -eq 0 ]; then
     echo "$(date +%Y-%m-%dT%H:%M:%S.%3N) - Successfully authenticated gsutil" | tee -a /home/crosstech/toughcam-release/upload_service.log
 else
