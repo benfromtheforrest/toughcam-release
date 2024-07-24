@@ -49,7 +49,7 @@ def authenticate_gsutil():
     result = subprocess.run([
         'gcloud', 'auth', 'activate-service-account',
         'auto-uploader@virbatim.iam.gserviceaccount.com',
-        '--key-file=/home/crosstech/config/auto-uploader-key.json',
+        '--key-file=/home/crosstech/toughcam-release/config/auto-uploader-key.json',
         '--project=virbatim'
     ], capture_output=True, text=True)
     if result.returncode == 0:
