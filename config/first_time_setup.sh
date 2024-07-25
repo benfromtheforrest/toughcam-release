@@ -161,32 +161,19 @@ ip route
 
 # Create OpenVPN startup script
 echo "Creating OpenVPN startup script..."
-sudo bash -c 'cat << EOF > /etc/network/if-up.d/openvpn
+sudo bash -c 'cat << EOF > /etc/network/if-up.d/connect_openvpn
 #!/bin/sh
 
-# Path to OpenVPN configuration file
-CONFIG="/home/crosstech/toughcam-release/config/client.ovpn"
-LOGFILE="/var/log/openvpn.log"
-
-# Function to start OpenVPN
-start_openvpn() {
-    /usr/sbin/openvpn --config "\$CONFIG" --daemon --log "\$LOGFILE"
-}
-
-# Check if wlan0 is up
-if ip link show wlan0 | grep -q "state UP"; then
-    IFACE="wlan0"
-    start_openvpn
-else
-    # Check if the current interface is eth0 or usb0
-    if [ "\$IFACE" = "eth0" ] || [ "\$IFACE" = "usb0" ]; then
-        start_openvpn
-    fi
+# Check if the interface is up
+if [ "" = "eth0" ] || [ "" = "wlan0" ] || [ "" = "usb0" ]; then
+    # Start OpenVPN with the configuration file
+    sudo openvpn --config /home/crosstech/config/client.ovpn --daemon --log /var/log/openvpn.log
 fi
+
 EOF'
 
 # Make the OpenVPN startup script executable
-sudo chmod +x /etc/network/if-up.d/openvpn
+sudo chmod +x /etc/network/if-up.d/connect_openvpn
 
 # Enable and start the systemd services
 sudo systemctl enable toughcam-recording-service.service
