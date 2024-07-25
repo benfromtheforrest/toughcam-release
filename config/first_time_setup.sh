@@ -19,7 +19,7 @@ sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install -y apt-transport-https ca-certificates gnupg curl openvpn
 
 # Add Google Cloud SDK repository
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/cloud.google.gpg
 
 echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
 
@@ -46,6 +46,7 @@ mkdir -p /home/crosstech/toughcam-release/output_videos
 
 # Set permissions for the scripts
 chmod +x /home/crosstech/toughcam-release/new_record.sh
+chmod +x /home/crosstech/toughcam-release/upload_service.sh
 chmod +x /home/crosstech/toughcam-release/reset_gps_usb.sh
 
 # Quota setup script
@@ -104,7 +105,6 @@ StandardOutput=journal
 StandardError=journal
 Restart=always
 User=root
-Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target" | sudo tee /etc/systemd/system/toughcam-recording-service.service
@@ -115,7 +115,6 @@ Description=Run ToughCam Upload Service
 After=network.target
 
 [Service]
-ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/python3 /home/crosstech/toughcam-release/upload_service.py
 WorkingDirectory=/home/crosstech/toughcam-release
 StandardOutput=journal
@@ -125,6 +124,11 @@ User=root
 
 [Install]
 WantedBy=multi-user.target" | sudo tee /etc/systemd/system/toughcam-upload-service.service
+
+# Set up OpenVPN to autoconnect
+sudo cp /home/crosstech/toughcam-release/config/client.ovpn /etc/openvpn/client.conf
+sudo systemctl enable openvpn@client
+sudo systemctl start openvpn@client
 
 # Install and configure dhcpcd
 sudo apt-get install -y dhcpcd5
@@ -157,21 +161,32 @@ ip route
 
 # Create OpenVPN startup script
 echo "Creating OpenVPN startup script..."
-sudo bash -c 'cat << EOF > /etc/network/if-up.d/connect_openvpn
+sudo bash -c 'cat << EOF > /etc/network/if-up.d/openvpn
 #!/bin/sh
 
 # Path to OpenVPN configuration file
-CONFIG="/home/crosstech/config/client.ovpn"
+CONFIG="/home/crosstech/toughcam-release/config/client.ovpn"
+LOGFILE="/var/log/openvpn.log"
 
-# Check if the interface is up
-if [ "$IFACE" = "eth0" ] || [ "$IFACE" = "wlan0" ] || [ "$IFACE" = "usb0" ]; then
-    # Start OpenVPN with the configuration file
-    /usr/sbin/openvpn --config "$CONFIG" --daemon --log /var/log/openvpn.log
+# Function to start OpenVPN
+start_openvpn() {
+    /usr/sbin/openvpn --config "\$CONFIG" --daemon --log "\$LOGFILE"
+}
+
+# Check if wlan0 is up
+if ip link show wlan0 | grep -q "state UP"; then
+    IFACE="wlan0"
+    start_openvpn
+else
+    # Check if the current interface is eth0 or usb0
+    if [ "\$IFACE" = "eth0" ] || [ "\$IFACE" = "usb0" ]; then
+        start_openvpn
+    fi
 fi
 EOF'
 
 # Make the OpenVPN startup script executable
-sudo chmod +x /etc/network/if-up.d/connect_openvpn
+sudo chmod +x /etc/network/if-up.d/openvpn
 
 # Enable and start the systemd services
 sudo systemctl enable toughcam-recording-service.service
