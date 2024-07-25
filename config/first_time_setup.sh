@@ -16,7 +16,7 @@ echo "TOUGHCAM_ID=$FORMATTED_ID" > $CONFIG_FILE
 sudo apt-get update && sudo apt-get upgrade -y
 
 # Install necessary packages
-sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
+sudo apt-get install -y apt-transport-https ca-certificates gnupg curl openvpn
 
 # Add Google Cloud SDK repository
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
@@ -46,19 +46,51 @@ mkdir -p /home/crosstech/toughcam-release/output_videos
 
 # Set permissions for the scripts
 chmod +x /home/crosstech/toughcam-release/new_record.sh
-
 chmod +x /home/crosstech/toughcam-release/reset_gps_usb.sh
 
-# Enable quotas on the home directory
-sudo mount -o remount,usrquota,grpquota /home
+# Quota setup script
+echo "#!/bin/bash
 
-# Initialize the quota database
-sudo quotacheck -cum /home
-sudo quotaon /home
+# Ensure the script is run as root
+if [ \"\$(id -u)\" -ne 0 ]; then
+    echo \"This script must be run as root\" >&2
+    exit 1
+fi
 
-# Set a quota for the user 'crosstech'
-# Setting 900GB soft and hard limit
-sudo setquota -u crosstech 0 921600000 0 0 /home
+# Backup the existing /etc/fstab
+cp /etc/fstab /etc/fstab.bak
+
+# Modify /etc/fstab to add usrquota
+if grep -q \"usrquota\" /etc/fstab; then
+    echo \"usrquota already set in /etc/fstab\"
+else
+    sed -i 's/\\(PARTUUID=.*-02.*defaults,noatime\\)/\\1,usrquota/' /etc/fstab
+    echo \"usrquota added to /etc/fstab\"
+fi
+
+# Remount the root filesystem
+mount -o remount /
+
+# Create quota files and enable quotas
+quotacheck -cum /
+quotaon /
+
+# Set a 900GB quota for the root user
+setquota -u root 0 900000000 0 0 /
+
+# Verify quotas
+repquota /
+
+echo \"Quota setup complete.\"" > /home/crosstech/toughcam-release/setup_quota.sh
+
+# Make the quota setup script executable
+chmod +x /home/crosstech/toughcam-release/setup_quota.sh
+
+# Run the quota setup script
+sudo /home/crosstech/toughcam-release/setup_quota.sh
+
+# Reload systemd to reflect any changes
+sudo systemctl daemon-reload
 
 # Set up a systemd service to run the main Python script at startup as root
 echo "[Unit]
@@ -91,6 +123,53 @@ User=root
 
 [Install]
 WantedBy=multi-user.target" | sudo tee /etc/systemd/system/toughcam-upload-service.service
+
+# Install and configure dhcpcd
+sudo apt-get install -y dhcpcd5
+
+# Backup existing dhcpcd.conf
+if [ -f /etc/dhcpcd.conf ]; then
+    echo "Backing up existing /etc/dhcpcd.conf to /etc/dhcpcd.conf.bak"
+    sudo cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak
+fi
+
+# Configure dhcpcd.conf with interface metrics
+echo "Configuring /etc/dhcpcd.conf with interface metrics..."
+sudo bash -c 'cat << EOF > /etc/dhcpcd.conf
+# Custom dhcpcd.conf with interface metrics
+interface wlan0
+metric 100
+
+interface usb0
+metric 200
+EOF'
+
+# Enable and start dhcpcd service
+echo "Enabling and starting dhcpcd service..."
+sudo systemctl enable dhcpcd
+sudo systemctl start dhcpcd
+
+# Confirm configuration
+echo "Configuration complete. Current routing table:"
+ip route
+
+# Create OpenVPN startup script
+echo "Creating OpenVPN startup script..."
+sudo bash -c 'cat << EOF > /etc/network/if-up.d/connect_openvpn
+#!/bin/sh
+
+# Path to OpenVPN configuration file
+CONFIG="/home/crosstech/config/client.ovpn"
+
+# Check if the interface is up
+if [ "$IFACE" = "eth0" ] || [ "$IFACE" = "wlan0" ] || [ "$IFACE" = "usb0" ]; then
+    # Start OpenVPN with the configuration file
+    /usr/sbin/openvpn --config "$CONFIG" --daemon --log /var/log/openvpn.log
+fi
+EOF'
+
+# Make the OpenVPN startup script executable
+sudo chmod +x /etc/network/if-up.d/connect_openvpn
 
 # Enable and start the systemd services
 sudo systemctl enable toughcam-recording-service.service
