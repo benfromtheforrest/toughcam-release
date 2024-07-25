@@ -65,12 +65,13 @@ process_segment() {
     local output_pattern=$2
     local start_time=$3
     local specific_log_file=$4
+    local interrupted_suffix=$5
 
     # Capture processing start time
     local processing_start_time=$(date +%s%3N)
     log_time "Processing started for $input_file" $specific_log_file
 
-    gst-launch-1.0 filesrc location=$input_file ! qtdemux ! queue ! h264parse ! splitmuxsink location=$output_pattern max-size-bytes=$SEGMENT_SIZE
+    gst-launch-1.0 filesrc location=$input_file ! qtdemux ! queue ! h264parse ! splitmuxsink location=${output_pattern}${interrupted_suffix} max-size-bytes=$SEGMENT_SIZE
 
     # Capture processing end time
     local processing_end_time=$(date +%s%3N)
@@ -160,6 +161,17 @@ graceful_shutdown() {
 
 # Set trap to catch termination signals and call graceful_shutdown
 trap graceful_shutdown SIGINT SIGTERM
+
+# Process any interrupted files before starting new recordings
+for file in $TEMP_DIR/*; do
+    if [ -f "$file" ]; then
+        echo "Found interrupted file: $file"
+        specific_log_file="${file%.*}_log.log"
+        precise_start_time=$(date +%s%3N)
+        output_pattern="${OUTPUT_DIR}/$(basename "${file%.*}")_segment_%05d.mp4"
+        process_segment "$file" "$output_pattern" "$precise_start_time" "$specific_log_file" "_interrupted"
+    fi
+done
 
 # Record and process in parallel
 segment_number=0
