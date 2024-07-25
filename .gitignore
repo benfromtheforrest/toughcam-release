@@ -6,6 +6,7 @@
 
 # Ignore a specific file
 config/auto-uploader-key.json
+config/config.txt
 
 # Ignore a directory
 /node_modules
