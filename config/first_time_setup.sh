@@ -115,6 +115,7 @@ Description=Run ToughCam Upload Service
 After=network.target
 
 [Service]
+ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/python3 /home/crosstech/toughcam-release/upload_service.py
 WorkingDirectory=/home/crosstech/toughcam-release
 StandardOutput=journal
