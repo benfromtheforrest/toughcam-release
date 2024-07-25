@@ -99,12 +99,14 @@ Description=Run ToughCam Recording Service
 After=network.target
 
 [Service]
+ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/python3 /home/crosstech/toughcam-release/launch_record.py
 WorkingDirectory=/home/crosstech/toughcam-release
 StandardOutput=journal
 StandardError=journal
 Restart=always
 User=root
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target" | sudo tee /etc/systemd/system/toughcam-recording-service.service
@@ -121,6 +123,7 @@ StandardOutput=journal
 StandardError=journal
 Restart=always
 User=root
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target" | sudo tee /etc/systemd/system/toughcam-upload-service.service
@@ -165,9 +168,9 @@ sudo bash -c 'cat << EOF > /etc/network/if-up.d/connect_openvpn
 #!/bin/sh
 
 # Check if the interface is up
-if [ "" = "eth0" ] || [ "" = "wlan0" ] || [ "" = "usb0" ]; then
+if [ "$IFACE" = "eth0" ] || [ "$IFACE" = "wlan0" ] || [ "$IFACE" = "usb0" ]; then
     # Start OpenVPN with the configuration file
-    sudo openvpn --config /home/crosstech/config/client.ovpn --daemon --log /var/log/openvpn.log
+    sudo openvpn --config /home/crosstech/config/client.ovpn --log /var/log/openvpn.log
 fi
 
 EOF'
