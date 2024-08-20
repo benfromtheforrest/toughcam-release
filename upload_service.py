@@ -85,7 +85,7 @@ def main():
         upload_files()
 
         # Check if recording script is not running and temp_videos directory is empty
-        if not is_recording_script_running() and not os.listdir(TEMP_DIR):
+        if not is_recording_script_running() and not os.listdir(OUTPUT_DIR):
             led.on()
         else:
             led.off()
